@@ -54,6 +54,9 @@ private:
     bool isInMenu;
     Uint16 menuState, menuSubState;
 
+    Uint16 setHoldTime;
+    bool setHeld;
+
     int numStarts, currentStart;
 
     FeedTable *feedTable;
@@ -62,6 +65,8 @@ private:
 
     const MESSAGE *message;
     Uint16 messageTime;
+
+    Uint16 spindleAngleOffset;
 
     const FEED_THREAD *loadFeedTable();
     LED_REG calculateLEDs();
