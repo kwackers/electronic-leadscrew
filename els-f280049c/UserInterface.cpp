@@ -120,7 +120,7 @@ MESSAGE BEGIN =
  .displayTime = UI_REFRESH_RATE_HZ * 0.2
 };
 
-
+const Uint16 SET_HOLD_SECONDS = 1;
 
 const Uint16 VALUE_BLANK[4] = { BLANK, BLANK, BLANK, BLANK };
 
@@ -141,6 +141,9 @@ UserInterface :: UserInterface(ControlPanel *controlPanel, Core *core, FeedTable
     this->keys.all = 0xff;
 
     this->isInMenu = false;
+
+    this->setHoldTime = 0.0;
+    this->setHeld = false;
 
     // initialize the core so we start up correctly
     core->setReverse(this->reverse);
@@ -218,7 +221,7 @@ void UserInterface :: loop( void )
     Uint16 currentRpm = core->getRPM();
 
     // read the current spindle position to keep this up to date
-    Uint16 currentSpindleAngle = encoder->getSpindleAngle();
+    Uint16 currentSpindleAngle = encoder->getSpindleAngle() + spindleAngleOffset % 3600;
 
     // display an override message, if there is one
     overrideMessage();
@@ -281,7 +284,43 @@ void UserInterface :: mainLoop( Uint16 currentRpm )
             }
             if( keys.bit.SET )
             {
-                beginMenu();
+                if (showAngle) // or, later, showPosition for carriage position
+                {
+                    if (setHoldTime == 0)
+                    {
+                        // start counting for short or long press
+                        setHoldTime = UI_REFRESH_RATE_HZ * SET_HOLD_SECONDS;
+                        setHeld = false;
+                    }
+                    else
+                    {
+                        setHoldTime--;
+                    }
+                else
+                {
+                    // !showAngle
+                    beginMenu();
+                }
+            }
+            else
+            {
+                // !keys.bit.SET
+                if ( setHeld )
+                {
+                    if ( setHoldTime <= 0 )
+                    {
+                        // set held for long press
+                        spindleAngleOffset = encoder->getSpindleAngle();
+                        setHeld = false;
+                    }
+                    else
+                    {
+                        // set released before timeout
+                        setHoldTime = 0;
+                        setHeld = false;
+                        beginMenu();
+                    }
+                }
             }
         }
     }
